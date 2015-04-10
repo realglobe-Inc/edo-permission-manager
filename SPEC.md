@@ -384,7 +384,7 @@ Content-Type: application/json
 * そうでなければ、変更要求合意 UI エンドポイントにリダイレクトさせる。
 
 
-### 9.2. リクエスト例
+### 9.1. リクエスト例
 
 ```http
 POST /request/agree HTTP/1.1
@@ -396,7 +396,7 @@ applied=%5B%2248v_2-Jj4C%22%5D&denied=%5B%222Jof_YcIzH%22%5D
 ```
 
 
-### 9.3. レスポンス例
+### 9.2. レスポンス例
 
 変更要求合意 UI エンドポイントへのリダイレクト例。
 
@@ -506,7 +506,7 @@ Content-Type: application/json
 * `exist` は除く。
 
 
-## 13. アカウント情報エンドポイント
+## 14. アカウント情報エンドポイント
 
 * 変更合意チケット、または、変更要求合意チケットと紐付くセッションでない場合、
     * エラーを返す。
@@ -530,7 +530,7 @@ Content-Type: application/json
 アカウント情報は外部データからだけでなく、セッションに紐付く変更コードの [edo-auth] TA 由来のアカウント情報も使う。
 
 
-### 13.1. リクエスト例
+### 14.1. リクエスト例
 
 ```http
 GET /api/info/user?ticket=th2rEioRZL&users=38BF35F5464C00F9%2083AB154986FB1EAE HTTP/1.1
@@ -539,7 +539,7 @@ Cookie: Permission-Manager=QkjGKwnIIC_m8uG-bSDOkGrcvN6kH1
 ```
 
 
-### 13.2. レスポンス例
+### 14.2. レスポンス例
 
 ```http
 HTTP/1.1 200 OK
@@ -554,7 +554,7 @@ Content-Type: application/json
 ```
 
 
-## 14. TA 情報エンドポイント
+## 15. TA 情報エンドポイント
 
 リクエストから以下のパラメータを取り出す。
 
@@ -572,7 +572,7 @@ Content-Type: application/json
     * 名前。
 
 
-### 14.1. リクエスト例
+### 15.1. リクエスト例
 
 ```http
 GET /api/info/ta?tas=%5B%22https%3A%2F%2Ffrom.example.org%22%5D HTTP/1.1
@@ -580,7 +580,7 @@ Host: ta.example.org
 ```
 
 
-### 14.2. レスポンス例
+### 15.2. レスポンス例
 
 ```http
 HTTP/1.1 200 OK
@@ -594,12 +594,12 @@ Content-Type: application/json
 ```
 
 
-## 15. エラーレスポンス
+## 16. エラーレスポンス
 
 [PDS 権限変更プロトコル]を参照のこと。
 
 
-## 16. 外部データ
+## 17. 外部データ
 
 以下に分ける。
 
@@ -609,10 +609,10 @@ Content-Type: application/json
     * 共有するとしてもこのプログラムの別プロセスのみのもの。
 
 
-### 16.1. 共有データ
+### 17.1. 共有データ
 
 
-#### 16.1.1. 変更権限保持アカウント
+#### 17.1.1. 変更権限保持アカウント
 
 権限管理 UI と共有する。
 
@@ -627,7 +627,7 @@ Content-Type: application/json
 * リソース保持アカウントの ID による取得
 
 
-#### 16.1.2. アクセス権限
+#### 17.1.2. アクセス権限
 
 以下を含む。
 
@@ -643,7 +643,7 @@ Content-Type: application/json
 * アカウント・TA ごとの権限の上書き
 
 
-#### 16.1.3. 変更要求
+#### 17.1.3. 変更要求
 
 もっとましな変更要求合意 UI と共有するかもしれない。
 
@@ -672,7 +672,7 @@ Content-Type: application/json
 * 削除
 
 
-#### 16.1.4. アカウント情報
+#### 17.1.4. アカウント情報
 
 以下を含む。
 
@@ -684,7 +684,7 @@ Content-Type: application/json
 * ID による取得
 
 
-#### 16.1.5. TA 情報
+#### 17.1.5. TA 情報
 
 以下を含む。
 
@@ -696,10 +696,10 @@ Content-Type: application/json
 * ID による取得
 
 
-### 16.2. 非共有データ
+### 17.2. 非共有データ
 
 
-#### 16.2.2. 変更コード
+#### 17.2.1. 変更コード
 
 以下を含む。
 
@@ -724,7 +724,7 @@ Content-Type: application/json
     * 有効でなければ失敗する。
 
 
-#### 16.2.3. セッション
+#### 17.2.2. セッション
 
 以下を含む。
 
