@@ -131,14 +131,14 @@ Content-Type: application/json
 {
     "chmod": {
         "profile": {
-            "user_tag": "self",
+            "owner_tag": "self",
             "ta": "https://writer.example.org",
             "path": "/profile",
             "mod": "+r",
             "essential": true
         },
         "diary": {
-            "user_tag": "self",
+            "owner_tag": "self",
             "ta": "https://writer.example.org",
             "path": "/diary",
             "mod": "+r"
@@ -280,7 +280,7 @@ UI の目的は、変更エンドポイントに POST させること。
 
 * **`tag`**
     * 変更対象タグ。
-* **`user`**
+* **`owner`**
     * 対象データを所有するアカウントの ID。
 * **`ta`**
     * [PDS 権限変更プロトコル]の変更要請リクエストパラメータを参照のこと。
@@ -331,7 +331,7 @@ Content-Type: application/json
 [
     {
         "tag": "profile",
-        "user": "38BF35F5464C00F9",
+        "owner": "38BF35F5464C00F9",
         "ta": "https://writer.example.org",
         "path": "/profile",
         "mod": "+r",
@@ -351,7 +351,7 @@ Content-Type: application/json
     },
     {
         "tag": "diary",
-        "user": "38BF35F5464C00F9",
+        "owner": "38BF35F5464C00F9",
         "ta": "https://writer.example.org",
         "path": "/diary",
         "mod": "+r",
@@ -506,10 +506,10 @@ Content-Type: application/json
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`ticket`**|必須|変更要求合意チケット|
-|**`holder`**|必須|リソースを所有するアカウントの ID|
+|**`owner`**|必須|リソースを所有するアカウントの ID|
 |**`target`**|任意|空白区切りの取得する対象の番号。無指定なら 0 から対象数 -1 まで|
 
-* 変更要求合意チケットがセッションに紐付くものと異なる、または、`holder` のリソースに対する変更権限を持たない場合、
+* 変更要求合意チケットがセッションに紐付くものと異なる、または、`owner` のリソースに対する変更権限を持たない場合、
     * エラーを返す。
 * そうでなければ、対象を `target` の順番通りに JSON 配列で返す。
   対象の番号が正当でない場合は null が入る。
