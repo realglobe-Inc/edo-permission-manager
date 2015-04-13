@@ -62,12 +62,27 @@ limitations under the License.
 |:--|:--|
 |Permission-Manager|セッション ID|
 
-変更、変更合意、変更要求合意、変更要求エンドポイントへのリクエスト時に、セッション ID が通知されなかった場合、セッションを発行する。
-セッションの期限に余裕がない場合、設定を引き継いだセッションを発行する。
+変更、変更合意、変更要求合意、変更要求エンドポイントへのリクエスト時に、有効なセッションが宣言されなかった場合、セッションを発行する。
+変更、変更要求エンドポイントでは、セッションの期限に余裕がない場合、設定を引き継いだセッションを発行する。
 
 変更、変更合意、変更要求合意、変更要求エンドポイントからのレスポンス時に、未通知のセッション ID を通知する。
 
 変更要求エンドポイントでもセッションの発行・更新を行う理由は、変更要求合意 UI エンドポイントへ直にアクセスしてきたときにセッションを張るため。
+
+||ユーザー認証|セッション利用|新規発行|引き継ぎ発行|
+|:--|:--:|:--:|:--:|:--:|
+|変更要請|no|no|no|no|
+|変更|yes|yes|yes|yes|
+|変更合意|yes|yes|yes|no|
+|変更合意 UI|yes|-|no|no|
+|変更対象|no|yes|no|no|
+|変更要求合意|yes|yes|yes|no|
+|変更要求合意 UI|yes|-|no|no|
+|変更要求|yes|yes|yes|yes|
+|変更要求対象数|no|yes|no|no|
+|変更要求対象|no|yes|no|no|
+|アカウント情報|no|yes|no|no|
+|TA 情報|no|-|no|no|
 
 
 ## 4. 変更要請エンドポイント
@@ -76,11 +91,11 @@ limitations under the License.
 
 * リクエストに問題がある場合、
     * エラーを返す。
+* そうでなく、`check_exist` が真の変更対象があり、そのリソースが存在しない場合、
+    * エラーを返す。
 * そうでなく、非明示的に合意できる場合、
     * そのためのエラーを返す。
       [PDS 権限変更プロトコル]を参照。
-* そうでなく、`check_exist` が真の変更対象があり、そのリソースが存在しない場合、
-    * エラーを返す。
 * そうでなければ、変更コードを発行する。
   変更コードに [edo-auth] TA 由来のアカウント情報、要請元 TA の ID、変更内容を紐付ける。
   変更コードを返す。
@@ -99,7 +114,7 @@ HEAD メソッドでバックエンドに問い合わせ、レスポンスのス
 #### 4.1.1. リソースの存在確認リクエスト例
 
 ```http
-HEAD /api/resource/user/https%3A%2F%2Fwriter.example.org/profile HTTP/1.1
+HEAD /api/resource/self/https%3A%2F%2Fwriter.example.org/profile HTTP/1.1
 Host: 127.0.0.1:8000
 ```
 
@@ -116,14 +131,14 @@ Content-Type: application/json
 {
     "chmod": {
         "profile": {
-            "user_tag": "user",
+            "user_tag": "self",
             "ta": "https://writer.example.org",
             "path": "/profile",
             "mod": "+r",
             "essential": true
         },
         "diary": {
-            "user_tag": "user",
+            "user_tag": "self",
             "ta": "https://writer.example.org",
             "path": "/diary",
             "mod": "+r"
@@ -165,6 +180,7 @@ Content-Type: application/json
 ```http
 GET /chmod?code=SS2EVIbmR7X1IHiHzMInTINxGYi-OY HTTP/1.1
 Host: ta.example.org
+Cookie: Permission-Manager=QkjGKwnIIC_m8uG-bSDOkGrcvN6kH1
 ```
 
 
@@ -172,8 +188,6 @@ Host: ta.example.org
 
 ```http
 HTTP/1.1 302 Found
-Set-Cookie: Permission-Manager=QkjGKwnIIC_m8uG-bSDOkGrcvN6kH1
-    Expires=Thu, 09 Apr 2015 11:11:14 GMT; Path=/; Secure; HttpOnly
 Location: /ui/chmod/agree.html?target_num=2&request_num=1#th2rEioRZL
 ```
 
@@ -190,14 +204,14 @@ Location: /ui/chmod/agree.html?target_num=2&request_num=1#th2rEioRZL
 |**`applied`**|該当するなら必須|適用で合意した変更対象タグの JSON 配列|
 |**`forwarded`**|該当するなら必須|転送で合意した変更対象タグの JSON 配列|
 |**`denied`**|該当するなら必須|拒否で合意した変更対象タグの JSON 配列|
-|**`redirect_to_request`**|任意|続けて変更要求に対する合意を行うかどうか|
+|**`continue_for_request`**|任意|続けて変更要求に対する合意を行うかどうか|
 |**`locale`**|任意|選択された表示言語|
 
-* チケットがセッションに紐付くものと異なる、または、合意に余分や不足がある場合、
+* 変更合意チケットがセッションに紐付くものと異なる、または、合意に余分や不足がある場合、
     * エラーを返す。
 * そうでなければ、合意を履行する。
 
-* `redirect_to_request` が `true` の場合、
+* `continue_for_request` が `true` の場合、
     * セッションに合意結果を紐付ける。
       変更要求合意 UI エンドポイントにリダイレクトさせる。
 * そうでなければ、セッションに紐付く変更コードの `redirect_uri` に合意結果を加えてリダイレクトさせる。
@@ -267,13 +281,14 @@ UI の目的は、変更エンドポイントに POST させること。
 * **`tag`**
     * 変更対象タグ。
 * **`user`**
-    * [PDS 権限変更プロトコル]の変更要請リクエストパラメータを参照のこと。
+    * 対象データを所有するアカウントの ID。
 * **`ta`**
     * [PDS 権限変更プロトコル]の変更要請リクエストパラメータを参照のこと。
 * **`path`**
     * [PDS 権限変更プロトコル]の変更要請リクエストパラメータを参照のこと。
 * **`accessor`**
-    * [PDS 権限変更プロトコル]の変更要請リクエストパラメータを参照のこと。
+    * アクセス主体の ID からアクセス元 TA の ID の配列へのマップ。
+      特殊な値として `*` で全てのアカウント、全ての TA を表す。
 * **`mod`**
     * [PDS 権限変更プロトコル]の変更要請リクエストパラメータを参照のこと。
 * **`essential`**
@@ -283,19 +298,17 @@ UI の目的は、変更エンドポイントに POST させること。
       以下の合意の種類がある。
         * `apply`
             * 適用。
-              ユーザーが変更権限を持つ場合のみ。
+              変更処理の主体が変更権限を持つ場合のみ。
         * `forward`
             * 転送。
-              ユーザーが変更権限を持たない場合のみ。
+              変更処理の主体が変更権限を持たない場合のみ。
         * `deny`
             * 拒否。
 * **`requester`**
-    * 要請元。
+    * 要求元。
       以下の要素を含むオブジェクト。
-        * `user`
-            * 要請主体の ID。
         * `ta`
-            * 要請元 TA の ID。
+            * 要求元 TA の ID。
 * **`exist`**
     * 存在が確認されたかどうか。
 
@@ -333,9 +346,8 @@ Content-Type: application/json
             "deny"
         ],
         "requester": {
-            "user": "38BF35F5464C00F9",
             "ta": "https://from.example.org"
-        }        
+        }
     },
     {
         "tag": "diary",
@@ -353,9 +365,8 @@ Content-Type: application/json
             "deny"
         ],
         "requester": {
-            "user": "38BF35F5464C00F9",
             "ta": "https://from.example.org"
-        }        
+        }
     }
 ]
 ```
@@ -422,7 +433,10 @@ UI の目的は、変更要求合意エンドポイントに POST させるこ�
 
 変更要求合意チケットを発行する。
 変更要求合意チケットをセッションに紐付ける。
-チケットを JSON で返す。
+以下の最上位要素を含む JSON を返す。
+
+* **`ticket`**
+    * 変更要求合意チケット
 
 
 ### 11.1. リクエスト例
@@ -458,7 +472,7 @@ Content-Type: application/json
 
 * 変更要求合意チケットがセッションに紐付くものと異なる場合、
     * エラーを返す。
-* そうでなければ、リソースの保持アカウントの ID から保持リソースに対する変更要求の対象数へのマップを JSON で返す。
+* そうでなければ、リソースを所有するアカウントの ID からそのリソースに対する変更要求の数へのマップを JSON で返す。
 
 
 ### 12.1. リクエスト例
@@ -477,6 +491,7 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 
 {
+    "38BF35F5464C00F9": 3,
     "22389660E8345308": 1
 }
 ```
@@ -491,10 +506,10 @@ Content-Type: application/json
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`ticket`**|必須|変更要求合意チケット|
-|**`holder`**|必須|保持アカウントの ID|
+|**`holder`**|必須|リソースを所有するアカウントの ID|
 |**`target`**|任意|空白区切りの取得する対象の番号。無指定なら 0 から対象数 -1 まで|
 
-* 変更要求合意チケットがセッションに紐付くものと異なる場合、
+* 変更要求合意チケットがセッションに紐付くものと異なる、または、`holder` のリソースに対する変更権限を持たない場合、
     * エラーを返す。
 * そうでなければ、対象を `target` の順番通りに JSON 配列で返す。
   対象の番号が正当でない場合は null が入る。
@@ -502,8 +517,8 @@ Content-Type: application/json
 対象は変更対象エンドポイントで返される JSON オブジェクトに以下の変更が加えられたもの。
 
 * 合意の種類に、先送りを意味する `postpone` を加える。
-* `requester` に RFC3339 形式で要求日時を示す `date` 要素を追加する。
-* `exist` は除く。
+* `requester` に、要求主体の ID を示す `user` と、要求日時を RFC3339 形式で示す `date` 要素を加える。
+* `exist` は無い。
 
 
 ## 14. アカウント情報エンドポイント
@@ -527,13 +542,13 @@ Content-Type: application/json
     * 保存されている場合のみ。
       名前。
 
-アカウント情報は外部データからだけでなく、セッションに紐付く変更コードの [edo-auth] TA 由来のアカウント情報も使う。
+アカウント情報は外部データだけでなく、セッションに紐付く変更コードの [edo-auth] TA 由来のアカウント情報も利用する。
 
 
 ### 14.1. リクエスト例
 
 ```http
-GET /api/info/user?ticket=th2rEioRZL&users=38BF35F5464C00F9%2083AB154986FB1EAE HTTP/1.1
+GET /api/info/user?ticket=th2rEioRZL&users=38BF35F5464C00F9%2022389660E8345308 HTTP/1.1
 Host: ta.example.org
 Cookie: Permission-Manager=QkjGKwnIIC_m8uG-bSDOkGrcvN6kH1
 ```
@@ -619,12 +634,12 @@ Content-Type: application/json
 以下を含む。
 
 * 変更権限保持アカウントの ID
-* 変更権限保持アカウントによって権限変更されうるリソース保持アカウントの ID
+* 変更権限保持アカウントがアクセス権限を変更できるリソースを所有するアカウントの ID
 
 以下の操作が必要。
 
 * 変更権限保持アカウントの ID による取得
-* リソース保持アカウントの ID による取得
+* リソースを所有するアカウントの ID による取得
 
 
 #### 17.1.2. アクセス権限
@@ -632,7 +647,7 @@ Content-Type: application/json
 以下を含む。
 
 * リソース識別子
-    * 保持アカウントの ID
+    * 所有アカウントの ID
     * 割り当て TA の ID
     * パス
 * アカウント・TA ごとの権限
@@ -650,7 +665,7 @@ Content-Type: application/json
 以下を含む。
 
 * リソース識別子
-    * 保持アカウントの ID
+    * 所有アカウントの ID
     * 割り当て TA の ID
     * パス
 * アクセス元
@@ -658,17 +673,17 @@ Content-Type: application/json
         * ID
         * TA 集
             * ID
-    * 要求日時
 * `mod`
-* 要請元
+* 要求元
     * アカウント ID
     * TA の ID
+    * 要求日時
 
 以下の操作が必要。
 
 * 保存
-* 保持アカウントの ID による取得
-* 保持アカウントの ID による数の取得
+* 所有アカウントの ID による取得
+* 所有アカウントの ID による数の取得
 * 削除
 
 
